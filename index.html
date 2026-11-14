@@ -187,6 +187,50 @@ function sfxCharge(){
  }catch(e){}
 }
 
+// ===== BGM（Web Audioで合成：メニューはゆったり和風、プレイ中は疾走感） =====
+let BG=null,bgMode=null,bgStep=0,bgNext=0;
+const BSC=[0,2,5,7,9],BROOT=293.66;
+function bf(i){return BROOT*Math.pow(2,(BSC[((i%5)+5)%5]+12*Math.floor(i/5))/12)}
+const BM_MENU=[4,-1,2,-1,3,-1,1,-1, 2,-1,0,-1,1,2,-1,-1, 4,-1,5,-1,4,-1,2,-1, 3,-1,1,-1,0,-1,-1,-1];
+const BM_PLAY=[0,2,3,2,4,2,3,2, 0,2,3,2,5,4,3,2, 1,3,4,3,5,3,4,3, 1,3,4,3,6,5,4,3];
+function bnote(f,d,type,v,t0){
+ const o=AC.createOscillator(),g=AC.createGain();o.type=type;o.frequency.value=f;
+ g.gain.setValueAtTime(.0001,t0);g.gain.exponentialRampToValueAtTime(v,t0+.015);g.gain.exponentialRampToValueAtTime(.0001,t0+d);
+ o.connect(g);g.connect(BG);o.start(t0);o.stop(t0+d+.05);
+}
+function bnoise(d,v,t0,fr,hp){
+ const n=Math.floor(AC.sampleRate*d),buf=AC.createBuffer(1,n,AC.sampleRate),data=buf.getChannelData(0);
+ for(let i=0;i<n;i++)data[i]=(Math.random()*2-1)*(1-i/n);
+ const s=AC.createBufferSource();s.buffer=buf;const f=AC.createBiquadFilter();f.type=hp?'highpass':'lowpass';f.frequency.value=fr;
+ const g=AC.createGain();g.gain.value=v;s.connect(f);f.connect(g);g.connect(BG);s.start(t0);
+}
+function bgPlayStep(mode,st,t0){
+ if(mode==='menu'){
+  const m=BM_MENU[st%32];
+  if(m>=0){bnote(bf(m),.55,'triangle',.16,t0);bnote(bf(m)*2,.3,'sine',.04,t0)}
+  if(st%8===0){bnote(bf(0)/2,2.6,'sine',.12,t0);bnote(bf(2)/2,2.6,'sine',.06,t0)}
+ }else{
+  const m=BM_PLAY[st%32];
+  bnote(bf(m),.14,'square',.045,t0);
+  if(st%4===0){bnote(90,.18,'sine',.32,t0);bnoise(.1,.1,t0,400,false)}
+  if(st%2===0)bnote(bf(-5+[0,0,3,2][(st>>3)&3]),.25,'sawtooth',.05,t0);
+  else bnoise(.03,.04,t0,5000,true);
+ }
+}
+function bgTick(){
+ if(!AC||!save.snd||document.hidden)return;
+ try{
+  if(AC.state==='suspended')AC.resume();
+  if(!BG){BG=AC.createGain();BG.gain.value=1;BG.connect(MASTER)}
+  const quiet=state==='gacha'&&gacha.phase>0;
+  BG.gain.setTargetAtTime(quiet?0:1,AC.currentTime,.15);
+  const mode=state==='play'?'play':'menu',dt=mode==='play'?.15:.34;
+  if(mode!==bgMode||bgNext<AC.currentTime-.5){bgMode=mode;bgStep=0;bgNext=AC.currentTime+.05}
+  while(bgNext<AC.currentTime+.25){if(!quiet)bgPlayStep(mode,bgStep,bgNext);bgStep++;bgNext+=dt}
+ }catch(e){}
+}
+setInterval(bgTick,60);
+
 // ===== UI部品（すべて四角） =====
 let buttons=[];
 function box(x,y,w,h,fill,stroke,lw){ctx.fillStyle=fill;ctx.fillRect(x,y,w,h);if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=lw||3;ctx.strokeRect(x,y,w,h)}}
