@@ -96,8 +96,8 @@ const COLS=[
 const POOL=CH.map((c,i)=>i); // 山賊も含む全員
 function rollCol(){let r=Math.random()*100,s=0;for(let i=0;i<COLS.length;i++){s+=COLS[i].w;if(r<s)return i}return 0}
 function rollChar(col){return POOL[Math.floor(Math.random()*POOL.length)]}
-const SLASH_CD=[1,.9,.8,.7,.6,.5]; // 色がレアなほど切り捨てのクールタイムが短い
-function skCd(c,col){return c.skill==='slash'?Math.round(c.cd*SLASH_CD[col||0]*10)/10:c.cd}
+const SLASH_CD=[1,.9,.8,.7,.6,.5]; // 色がレアなほど全スキルのクールタイムが短い
+function skCd(c,col){return c.skill?Math.round(c.cd*SLASH_CD[col||0]*10)/10:c.cd}
 const KANA='あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわをん';
 const WT=548-190,WB=548-120;
 function descOf(c){return c.skill?c.sname+'：'+c.info:c.info}
@@ -492,7 +492,7 @@ function drawDex(){
   if(has){
    txt(c.skill?'能力：'+c.sname:'能力なし',W/2,288,16,c.col||'#555');
    txt(c.skill?c.info:'最初から使えるキャラ',W/2,308,13,'#555',null,false);
-   txt(c.skill?(c.dur?'効果 '+c.dur+'秒　':'')+(c.hits?'防御 '+c.hits+'回　':'')+'クールタイム '+skCd(c,dex.col)+'秒'+(c.skill==='slash'?'（色でみじかく）':''):'',W/2,328,13,'#222');
+   txt(c.skill?(c.dur?'効果 '+c.dur+'秒　':'')+(c.hits?'防御 '+c.hits+'回　':'')+'クールタイム '+skCd(c,dex.col)+'秒'+'（色でみじかく）':'',W/2,328,13,'#222');
   }else txt('ガチャで手に入れよう',W/2,300,15,'#777');
   // 色えらび
   COLS.forEach((cl,k)=>{
